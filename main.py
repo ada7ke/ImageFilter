@@ -48,6 +48,11 @@ print("After clicking on a window, use the following keyboard shortcuts:")
 print("  's' to Save")
 print("  'Esc' to Exit")
 
+# color function
+def getColor(r, g, b, break1, break2):
+    paper = eyw.create_colored_paper(original_image, r, g, b)
+
+
 # keyboard controls
 keypressed = 1
 while keypressed != 27 and keypressed != ord('s'):
