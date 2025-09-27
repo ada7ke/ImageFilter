@@ -2,9 +2,9 @@
 # Convert an image into grayscale, then convert to 3 colors
 
 # imports
-import cv2
+import cv2, eyw
 import os.path
-import eyw
+import json
 
 # get image file
 print ("Save your original image in the same folder as this program.")
@@ -24,6 +24,7 @@ grayscale_image = cv2.cvtColor(grayscale_image_simple, cv2.COLOR_GRAY2BGR)
 
 # instructions
 print("After clicking on a window, use the following keyboard shortcuts:")
+print("  'e' to Import Data")
 print("  's' to Save")
 print("  'Esc' to Exit")
 
@@ -33,6 +34,7 @@ cv2.namedWindow('Grayscale Image')
 cv2.namedWindow('Customized Image')
 cv2.namedWindow('Color Trackbar')
 cv2.namedWindow('Grayscale Trackbar')
+cv2.namedWindow('Color Preview')
 
 # create color trackbar
 cv2.createTrackbar('color-select', 'Color Trackbar', 0, 5, lambda x:None)
@@ -41,13 +43,13 @@ cv2.createTrackbar('g', 'Color Trackbar', 0, 255, lambda x:None)
 cv2.createTrackbar('b', 'Color Trackbar', 0, 255, lambda x:None)
 
 # create grayscale trackbar
-cv2.createTrackbar('1', 'Grayscale Trackbar', 50, 255, lambda x:None)
-cv2.createTrackbar('2', 'Grayscale Trackbar', 100, 255, lambda x:None)
-cv2.createTrackbar('3', 'Grayscale Trackbar', 150, 255, lambda x:None)
-cv2.createTrackbar('4', 'Grayscale Trackbar', 200, 255, lambda x:None)
-cv2.createTrackbar('5', 'Grayscale Trackbar', 250, 255, lambda x:None)
+cv2.createTrackbar('1', 'Grayscale Trackbar', 25, 255, lambda x:None)
+cv2.createTrackbar('2', 'Grayscale Trackbar', 75, 255, lambda x:None)
+cv2.createTrackbar('3', 'Grayscale Trackbar', 125, 255, lambda x:None)
+cv2.createTrackbar('4', 'Grayscale Trackbar', 175, 255, lambda x:None)
+cv2.createTrackbar('5', 'Grayscale Trackbar', 225, 255, lambda x:None)
 
-# color function
+# create color parts function
 def getColor(r, g, b, b1, b2):
     paper = eyw.create_colored_paper(original_image, r, g, b)
     min = [b1+1, b1+1, b1+1]
@@ -65,42 +67,75 @@ def combineImages(i1, i2, i3, i4, i5, i6):
     customized_image = eyw.combine_images(customized_image4, i6)
     return customized_image
 
-colors = [[0, 0, 255], [0, 255, 255], [0, 255, 0], [100, 0, 255], [100, 255, 255], [0, 255, 100]]
+#initial color array
+colors = [[245, 86, 78], [245, 124, 32], [247, 191, 5], [100, 207, 43], [43, 160, 207], [182, 104, 242]]
 
-# keyboard controls
 keypressed = 1
 while keypressed != 27 and keypressed != ord('s'):
-    # get trackbar colors
+    # get selected color
     colorSelect = cv2.getTrackbarPos('color-select', 'Color Trackbar')
+    # get rgb trackbar position and update the selected color
     colors[colorSelect] = [cv2.getTrackbarPos('b', 'Color Trackbar'), cv2.getTrackbarPos('g', 'Color Trackbar'),
                            cv2.getTrackbarPos('r', 'Color Trackbar'), ]
 
-    # color ratios
+    # create color preview
+    preview = eyw.create_colored_paper(original_image, *colors[colorSelect])
+    preview = cv2.resize(preview, (125, 50), interpolation=cv2.INTER_AREA)
+
+    # get breakpoints
     breaks = [cv2.getTrackbarPos('1', 'Grayscale Trackbar'), cv2.getTrackbarPos('2', 'Grayscale Trackbar'),
               cv2.getTrackbarPos('3', 'Grayscale Trackbar'), cv2.getTrackbarPos('4', 'Grayscale Trackbar'),
               cv2.getTrackbarPos('5', 'Grayscale Trackbar')]
-    colorParts = [getColor(colors[0][0], colors[0][1], colors[0][2], -1, breaks[0]),
-                  getColor(colors[1][0], colors[1][1], colors[1][2], breaks[0], breaks[1]),
-                  getColor(colors[2][0], colors[2][1], colors[2][2], breaks[1], breaks[2]),
-                  getColor(colors[3][0], colors[3][1], colors[3][2], breaks[2], breaks[3]),
-                  getColor(colors[4][0], colors[4][1], colors[4][2], breaks[3], breaks[4]),
-                  getColor(colors[5][0], colors[5][1], colors[5][2], breaks[4], 255)]
+    # create color parts
+    colorParts = [getColor(*colors[0], -1, breaks[0]),
+                  getColor(*colors[1], breaks[0], breaks[1]),
+                  getColor(*colors[2], breaks[1], breaks[2]),
+                  getColor(*colors[3], breaks[2], breaks[3]),
+                  getColor(*colors[4], breaks[3], breaks[4]),
+                  getColor(*colors[5], breaks[4], 255)]
+    #combine images
+    customized_image = combineImages(*colorParts)
 
-    customized_image = combineImages(colorParts[0], colorParts[1], colorParts[2], colorParts[3], colorParts[4], colorParts[5])
-
+    #show windows
     cv2.imshow('Original Image', original_image)
     cv2.imshow('Grayscale Image', grayscale_image)
     cv2.imshow('Customized Image', customized_image)
+    cv2.imshow('Color Preview', preview)
 
     # keyboard input
     keypressed = cv2.waitKey(1)
 
-if keypressed == 27: # close window if 'escape' key pressed
+    # import color and breakpoint data
+    if keypressed == ord('e'):
+        data = input("Enter the filename of your data txt: ")
+        if os.path.isfile(data) == True:
+            with open(data, 'r') as f:
+                breaks = json.loads(f.readline())
+                colors = json.loads(f.readline())
+        else:
+            print("The filename was invalid")
+
+if keypressed == 27:  # close window if 'escape' key pressed
     cv2.destroyAllWindows()
     cv2.waitKey(1)
-elif keypressed == ord('s'): # save greyscale and colored file if 's' key pressed
+elif keypressed == ord('s'):  # save greyscale, colored file, and data txt if 's' key pressed
+    # create filenames
     file = filename.split('.')
-    cv2.imwrite(file[0]+'Grayscale.'+file[1] ,grayscale_image)
-    cv2.imwrite(file[0]+'RYG.'+file[1], customized_image)
+    grayscale_file = file[0] + 'Grayscale.' + file[1]
+    colored_file = file[0] + 'Colored.' + file[1]
+    txt_file = file[0] + 'Data.txt'
+    index = 0
+    # if filename already exists, add a number at the end
+    while os.path.isfile(grayscale_file) == True or os.path.isfile(colored_file) == True:
+        grayscale_file = file[0] + 'Grayscale' + str(index) + '.' + file[1]
+        colored_file = file[0] + 'Colored' + str(index) + '.' + file[1]
+        txt_file = file[0] + 'Data' + str(index) + '.txt'
+        index += 1
+    #create files
+    cv2.imwrite(grayscale_file, grayscale_image)
+    cv2.imwrite(colored_file, customized_image)
+    with open(txt_file, 'w') as f:
+        json.dump(breaks, f); f.write("\n")
+        json.dump(colors, f); f.write("\n")
     cv2.destroyAllWindows()
     cv2.waitKey(1)
