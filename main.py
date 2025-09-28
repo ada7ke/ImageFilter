@@ -1,6 +1,3 @@
-# Version #02 - Added track slider
-# Convert an image into grayscale, then convert to 3 colors
-
 # imports
 import cv2, eyw
 import os.path
@@ -121,16 +118,21 @@ if keypressed == 27:  # close window if 'escape' key pressed
 elif keypressed == ord('s'):  # save greyscale, colored file, and data txt if 's' key pressed
     # create filenames
     file = filename.split('.')
-    grayscale_file = file[0] + 'Grayscale.' + file[1]
-    colored_file = file[0] + 'Colored.' + file[1]
-    txt_file = file[0] + 'Data.txt'
-    index = 0
+    save_name = input("Enter a filename to save as or leave blank to use default name: ")
+    if save_name == "":
+        save_name = file[0]
+    grayscale_file = save_name + 'Grayscale.' + file[1]
+    colored_file = save_name + 'Colored.' + file[1]
+    txt_file = save_name + 'Data.txt'
+
     # if filename already exists, add a number at the end
-    while os.path.isfile(grayscale_file) == True or os.path.isfile(colored_file) == True:
-        grayscale_file = file[0] + 'Grayscale' + str(index) + '.' + file[1]
-        colored_file = file[0] + 'Colored' + str(index) + '.' + file[1]
-        txt_file = file[0] + 'Data' + str(index) + '.txt'
+    index = 0
+    while os.path.isfile(grayscale_file) == True or os.path.isfile(colored_file) == True or os.path.isfile(txt_file) == True:
+        grayscale_file = save_name + 'Grayscale' + str(index) + '.' + file[1]
+        colored_file = save_name + 'Colored' + str(index) + '.' + file[1]
+        txt_file = save_name + 'Data' + str(index) + '.txt'
         index += 1
+
     #create files
     cv2.imwrite(grayscale_file, grayscale_image)
     cv2.imwrite(colored_file, customized_image)
