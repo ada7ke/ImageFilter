@@ -1,15 +1,12 @@
 # imports
-import cv2, eyw
-import os.path
-import json
+import cv2, eyw, os.path, json
 
 # get image file
 print ("Save your original image in the same folder as this program.")
 filename_valid = False
 while filename_valid == False:
-    # filename = input("Enter the name of your file, including the "\
-    #                              "extension, and then press 'enter': ")
-    filename = "picture.jpg"
+    filename = input("Enter the name of your file, including the extension, and then press 'enter': ")
+    # filename = "picture.jpg"
     if os.path.isfile(filename) == True:
         filename_valid = True
     else:
@@ -21,7 +18,7 @@ grayscale_image = cv2.cvtColor(grayscale_image_simple, cv2.COLOR_GRAY2BGR)
 
 # instructions
 print("After clicking on a window, use the following keyboard shortcuts:")
-print("  'e' to Import Data")
+print("  'i' to Import Data")
 print("  's' to Save")
 print("  'Esc' to Exit")
 
@@ -57,20 +54,29 @@ def getColor(r, g, b, b1, b2):
 
 # combine colored images
 def combineImages(i1, i2, i3, i4, i5, i6):
-    customized_image1 = eyw.combine_images(i1, i2)
-    customized_image2 = eyw.combine_images(customized_image1, i3)
-    customized_image3 = eyw.combine_images(customized_image2, i4)
-    customized_image4 = eyw.combine_images(customized_image3, i5)
-    customized_image = eyw.combine_images(customized_image4, i6)
-    return customized_image
+    combined = eyw.combine_images(i1, i2)
+    combined = eyw.combine_images(combined, i3)
+    combined = eyw.combine_images(combined, i4)
+    combined = eyw.combine_images(combined, i5)
+    combined = eyw.combine_images(combined, i6)
+    return combined
 
 #initial color array
 colors = [[245, 86, 78], [245, 124, 32], [247, 191, 5], [100, 207, 43], [43, 160, 207], [182, 104, 242]]
 
+temp = 0
 keypressed = 1
 while keypressed != 27 and keypressed != ord('s'):
     # get selected color
     colorSelect = cv2.getTrackbarPos('color-select', 'Color Trackbar')
+
+    # update color trackbar if switching color
+    if colorSelect != temp:
+        cv2.setTrackbarPos('b', 'Color Trackbar', colors[colorSelect][0])
+        cv2.setTrackbarPos('g', 'Color Trackbar', colors[colorSelect][1])
+        cv2.setTrackbarPos('r', 'Color Trackbar', colors[colorSelect][2])
+        temp = colorSelect
+
     # get rgb trackbar position and update the selected color
     colors[colorSelect] = [cv2.getTrackbarPos('b', 'Color Trackbar'), cv2.getTrackbarPos('g', 'Color Trackbar'),
                            cv2.getTrackbarPos('r', 'Color Trackbar'), ]
@@ -103,7 +109,7 @@ while keypressed != 27 and keypressed != ord('s'):
     keypressed = cv2.waitKey(1)
 
     # import color and breakpoint data
-    if keypressed == ord('e'):
+    if keypressed == ord('i'):
         data = input("Enter the filename of your data txt: ")
         if os.path.isfile(data) == True:
             with open(data, 'r') as f:
