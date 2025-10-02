@@ -19,19 +19,25 @@ grayscale_image_simple = cv2.imread(filename, 0)
 grayscale_image = cv2.cvtColor(grayscale_image_simple, cv2.COLOR_GRAY2BGR)
 
 # instructions
-print("Use the Color Trackbar window to select the color swatch to change, and change the RGB values")
-print("Use the Grayscale Trackbar window to change the breakpoints between the different colors")
+print("Use the Color Trackbar window to select the number of colors, the color swatch to change, and change the RGB values\n"
+      " - The first color trackbar allows you to change the number of colors to a max of 10 \n"
+      " - The second color trackbar allows you to select which color the RGB trackbars are changing \n"
+      " - The last 3 color trackbars allow you to change the RGB values")
+print("Use the Breakpoint Trackbar window to change the breakpoints between the different colors \n"
+      " - The first grayscale trackbar allows you to select which breakpoint you want to change \n"
+      " - The second grayscale trackbar allows you to change the breakpoint between two colors")
 print("After clicking on a window, use the following keyboard shortcuts:")
 print("  'i' to Import Data")
 print("  's' to Save")
 print("  'Esc' to Exit")
+print("Then return to the program terminal to enter a file name")
 
 # create image windows
 cv2.namedWindow('Original Image')
 cv2.namedWindow('Grayscale Image')
 cv2.namedWindow('Customized Image')
 cv2.namedWindow('Color Trackbar')
-cv2.namedWindow('Grayscale Trackbar')
+cv2.namedWindow('Breakpoint Trackbar')
 cv2.namedWindow('Color Preview')
 
 # create color trackbar
@@ -42,8 +48,8 @@ cv2.createTrackbar('g', 'Color Trackbar', 0, 255, lambda x: None)
 cv2.createTrackbar('b', 'Color Trackbar', 0, 255, lambda x: None)
 
 # create grayscale trackbar
-cv2.createTrackbar('breakpoint-select', 'Grayscale Trackbar', 1, 8, lambda x: None)  # 1-based index
-cv2.createTrackbar('breakpoint', 'Grayscale Trackbar', 100, 255, lambda x: None)
+cv2.createTrackbar('breakpoint-select', 'Breakpoint Trackbar', 1, 8, lambda x: None)  # 1-based index
+cv2.createTrackbar('breakpoint', 'Breakpoint Trackbar', 100, 255, lambda x: None)
 
 # create color parts function
 def getColor(r, g, b, b1, b2):
@@ -91,13 +97,13 @@ while keypressed not in (27, ord('s')):
     colorSelect = colorSelect_ui - 1  # 0-based
 
     # breakpoint select
-    breakpointSelect_ui = cv2.getTrackbarPos('breakpoint-select', 'Grayscale Trackbar')
+    breakpointSelect_ui = cv2.getTrackbarPos('breakpoint-select', 'Breakpoint Trackbar')
     bp_max_ui = max(1, colorCount - 1)
     if breakpointSelect_ui < 1:
         breakpointSelect_ui = 1
     elif breakpointSelect_ui > bp_max_ui:
         breakpointSelect_ui = bp_max_ui
-    cv2.setTrackbarPos('breakpoint-select', 'Grayscale Trackbar', breakpointSelect_ui)
+    cv2.setTrackbarPos('breakpoint-select', 'Breakpoint Trackbar', breakpointSelect_ui)
     breakpointSelect = breakpointSelect_ui - 1  # 0-based
 
     # update color trackbar if switching color
@@ -120,11 +126,11 @@ while keypressed not in (27, ord('s')):
 
     # update breakpoint slider
     if breakpointSelect != tempb and breakpointSelect < len(breaks):
-        cv2.setTrackbarPos('breakpoint', 'Grayscale Trackbar', breaks[breakpointSelect])
+        cv2.setTrackbarPos('breakpoint', 'Breakpoint Trackbar', breaks[breakpointSelect])
         tempb = breakpointSelect
 
     if breakpointSelect < len(breaks):
-        breaks[breakpointSelect] = cv2.getTrackbarPos('breakpoint', 'Grayscale Trackbar')
+        breaks[breakpointSelect] = cv2.getTrackbarPos('breakpoint', 'Breakpoint Trackbar')
 
     # create color parts
     colorParts = [getColor(*colors[0], -1, breaks[0])]
@@ -160,8 +166,8 @@ while keypressed not in (27, ord('s')):
                 cv2.setTrackbarPos('b', 'Color Trackbar', colors[0][0])
                 cv2.setTrackbarPos('g', 'Color Trackbar', colors[0][1])
                 cv2.setTrackbarPos('r', 'Color Trackbar', colors[0][2])
-                cv2.setTrackbarPos('breakpoint-select', 'Grayscale Trackbar', 1)
-                cv2.setTrackbarPos('breakpoint', 'Grayscale Trackbar', breaks[0])
+                cv2.setTrackbarPos('breakpoint-select', 'Breakpoint Trackbar', 1)
+                cv2.setTrackbarPos('breakpoint', 'Breakpoint Trackbar', breaks[0])
                 tempc = 0
 
                 # adds empty colors and breakpoints to allow adding colors again
