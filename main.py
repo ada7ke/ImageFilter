@@ -2,21 +2,25 @@
 import cv2, eyw, os.path, json
 
 # get image file
-print ("Save your original image in the same folder as this program.")
+print("Save your original image in the same folder as this program.")
 filename_valid = False
-while filename_valid == False:
-    filename = input("Enter the name of your file, including the extension, and then press 'enter': ")
-    # filename = "picture.jpg"
-    if os.path.isfile(filename) == True:
+while not filename_valid:
+    filename = "picture.jpg"
+    if os.path.isfile(filename):
         filename_valid = True
     else:
-        print ("Something was wrong with that filename. Please try again.")
+        print("Something was wrong with that filename. Please try again.")
 
-original_image = cv2.imread(filename,1)
+# read image files
+original_image = cv2.imread(filename, 1)
 grayscale_image_simple = cv2.imread(filename, 0)
+
+# convert to grayscale
 grayscale_image = cv2.cvtColor(grayscale_image_simple, cv2.COLOR_GRAY2BGR)
 
 # instructions
+print("Use the Color Trackbar window to select the color swatch to change, and change the RGB values")
+print("Use the Grayscale Trackbar window to change the breakpoints between the different colors")
 print("After clicking on a window, use the following keyboard shortcuts:")
 print("  'i' to Import Data")
 print("  's' to Save")
@@ -31,98 +35,148 @@ cv2.namedWindow('Grayscale Trackbar')
 cv2.namedWindow('Color Preview')
 
 # create color trackbar
-cv2.createTrackbar('color-select', 'Color Trackbar', 0, 5, lambda x:None)
-cv2.createTrackbar('r', 'Color Trackbar', 0, 255, lambda x:None)
-cv2.createTrackbar('g', 'Color Trackbar', 0, 255, lambda x:None)
-cv2.createTrackbar('b', 'Color Trackbar', 0, 255, lambda x:None)
+cv2.createTrackbar('color-count', 'Color Trackbar', 6, 9, lambda x: None)   # number of colors
+cv2.createTrackbar('color-select', 'Color Trackbar', 1, 9, lambda x: None)  # 1-based index
+cv2.createTrackbar('r', 'Color Trackbar', 0, 255, lambda x: None)
+cv2.createTrackbar('g', 'Color Trackbar', 0, 255, lambda x: None)
+cv2.createTrackbar('b', 'Color Trackbar', 0, 255, lambda x: None)
 
 # create grayscale trackbar
-cv2.createTrackbar('1', 'Grayscale Trackbar', 25, 255, lambda x:None)
-cv2.createTrackbar('2', 'Grayscale Trackbar', 75, 255, lambda x:None)
-cv2.createTrackbar('3', 'Grayscale Trackbar', 125, 255, lambda x:None)
-cv2.createTrackbar('4', 'Grayscale Trackbar', 175, 255, lambda x:None)
-cv2.createTrackbar('5', 'Grayscale Trackbar', 225, 255, lambda x:None)
+cv2.createTrackbar('breakpoint-select', 'Grayscale Trackbar', 1, 8, lambda x: None)  # 1-based index
+cv2.createTrackbar('breakpoint', 'Grayscale Trackbar', 100, 255, lambda x: None)
 
 # create color parts function
 def getColor(r, g, b, b1, b2):
     paper = eyw.create_colored_paper(original_image, r, g, b)
-    min = [b1+1, b1+1, b1+1]
-    max = [b2, b2, b2]
-    mask = eyw.create_mask(grayscale_image, min, max)
+    minv = [b1 + 1, b1 + 1, b1 + 1]
+    maxv = [b2, b2, b2]
+    mask = eyw.create_mask(grayscale_image, minv, maxv)
     colored_parts = eyw.apply_mask(paper, mask)
     return colored_parts
 
 # combine colored images
-def combineImages(i1, i2, i3, i4, i5, i6):
-    combined = eyw.combine_images(i1, i2)
-    combined = eyw.combine_images(combined, i3)
-    combined = eyw.combine_images(combined, i4)
-    combined = eyw.combine_images(combined, i5)
-    combined = eyw.combine_images(combined, i6)
+def combineImages(colorParts):
+    combined = colorParts[0].copy()
+    for i in range(1, len(colorParts)):
+        combined = eyw.combine_images(combined, colorParts[i])
     return combined
 
-#initial color array
-colors = [[245, 86, 78], [245, 124, 32], [247, 191, 5], [100, 207, 43], [43, 160, 207], [182, 104, 242]]
+# initial arrays
+colors = [
+    [245, 86, 78], [245, 124, 32], [247, 191, 5],
+    [100, 207, 43], [43, 160, 207], [182, 104, 242],
+    [82, 58, 183], [173, 84, 12], [83, 90, 123],
+    [233, 71, 18]
+]
+breaks = [25, 50, 75, 100, 125, 150, 175, 200, 225]
 
-temp = 0
+tempc = -1
+tempb = -1
 keypressed = 1
-while keypressed != 27 and keypressed != ord('s'):
-    # get selected color
-    colorSelect = cv2.getTrackbarPos('color-select', 'Color Trackbar')
+
+# program loop
+while keypressed not in (27, ord('s')):
+    # number of colors
+    colorCount = cv2.getTrackbarPos('color-count', 'Color Trackbar')
+    if colorCount < 1:
+        colorCount = 1
+
+    # color select
+    colorSelect_ui = cv2.getTrackbarPos('color-select', 'Color Trackbar')
+    if colorSelect_ui < 1:
+        colorSelect_ui = 1
+    elif colorSelect_ui > colorCount:
+        colorSelect_ui = colorCount
+    cv2.setTrackbarPos('color-select', 'Color Trackbar', colorSelect_ui)
+    colorSelect = colorSelect_ui - 1  # 0-based
+
+    # breakpoint select
+    breakpointSelect_ui = cv2.getTrackbarPos('breakpoint-select', 'Grayscale Trackbar')
+    bp_max_ui = max(1, colorCount - 1)
+    if breakpointSelect_ui < 1:
+        breakpointSelect_ui = 1
+    elif breakpointSelect_ui > bp_max_ui:
+        breakpointSelect_ui = bp_max_ui
+    cv2.setTrackbarPos('breakpoint-select', 'Grayscale Trackbar', breakpointSelect_ui)
+    breakpointSelect = breakpointSelect_ui - 1  # 0-based
 
     # update color trackbar if switching color
-    if colorSelect != temp:
+    if colorSelect != tempc:
         cv2.setTrackbarPos('b', 'Color Trackbar', colors[colorSelect][0])
         cv2.setTrackbarPos('g', 'Color Trackbar', colors[colorSelect][1])
         cv2.setTrackbarPos('r', 'Color Trackbar', colors[colorSelect][2])
-        temp = colorSelect
+        tempc = colorSelect
 
-    # get rgb trackbar position and update the selected color
-    colors[colorSelect] = [cv2.getTrackbarPos('b', 'Color Trackbar'), cv2.getTrackbarPos('g', 'Color Trackbar'),
-                           cv2.getTrackbarPos('r', 'Color Trackbar'), ]
+    # update selected color from sliders
+    colors[colorSelect] = [
+        cv2.getTrackbarPos('b', 'Color Trackbar'),
+        cv2.getTrackbarPos('g', 'Color Trackbar'),
+        cv2.getTrackbarPos('r', 'Color Trackbar'),
+    ]
 
-    # create color preview
+    # color preview
     preview = eyw.create_colored_paper(original_image, *colors[colorSelect])
     preview = cv2.resize(preview, (125, 50), interpolation=cv2.INTER_AREA)
 
-    # get breakpoints
-    breaks = [cv2.getTrackbarPos('1', 'Grayscale Trackbar'), cv2.getTrackbarPos('2', 'Grayscale Trackbar'),
-              cv2.getTrackbarPos('3', 'Grayscale Trackbar'), cv2.getTrackbarPos('4', 'Grayscale Trackbar'),
-              cv2.getTrackbarPos('5', 'Grayscale Trackbar')]
-    # create color parts
-    colorParts = [getColor(*colors[0], -1, breaks[0]),
-                  getColor(*colors[1], breaks[0], breaks[1]),
-                  getColor(*colors[2], breaks[1], breaks[2]),
-                  getColor(*colors[3], breaks[2], breaks[3]),
-                  getColor(*colors[4], breaks[3], breaks[4]),
-                  getColor(*colors[5], breaks[4], 255)]
-    #combine images
-    customized_image = combineImages(*colorParts)
+    # update breakpoint slider
+    if breakpointSelect != tempb and breakpointSelect < len(breaks):
+        cv2.setTrackbarPos('breakpoint', 'Grayscale Trackbar', breaks[breakpointSelect])
+        tempb = breakpointSelect
 
-    #show windows
+    if breakpointSelect < len(breaks):
+        breaks[breakpointSelect] = cv2.getTrackbarPos('breakpoint', 'Grayscale Trackbar')
+
+    # create color parts
+    colorParts = [getColor(*colors[0], -1, breaks[0])]
+    for i in range(colorCount - 2):
+        colorParts.append(getColor(*colors[i + 1], breaks[i], breaks[i + 1]))
+    colorParts.append(getColor(*colors[colorCount - 1], breaks[colorCount - 2], 255))
+
+    # combine color parts
+    customized_image = combineImages(colorParts)
+
+    # show windows
     cv2.imshow('Original Image', original_image)
     cv2.imshow('Grayscale Image', grayscale_image)
     cv2.imshow('Customized Image', customized_image)
     cv2.imshow('Color Preview', preview)
 
-    # keyboard input
+    # wait for user input
     keypressed = cv2.waitKey(1)
 
-    # import color and breakpoint data
+    # import data
     if keypressed == ord('i'):
-        data = input("Enter the filename of your data txt: ")
-        if os.path.isfile(data) == True:
+        data = "pictureData.txt"
+        if os.path.isfile(data):
             with open(data, 'r') as f:
+                # loads break and color data
                 breaks = json.loads(f.readline())
                 colors = json.loads(f.readline())
+                colorCount = len(colors)
+
+                # reset trackbars to match newly imported data
+                cv2.setTrackbarPos('color-count', 'Color Trackbar', colorCount)
+                cv2.setTrackbarPos('color-select', 'Color Trackbar', 1)
+                cv2.setTrackbarPos('b', 'Color Trackbar', colors[0][0])
+                cv2.setTrackbarPos('g', 'Color Trackbar', colors[0][1])
+                cv2.setTrackbarPos('r', 'Color Trackbar', colors[0][2])
+                cv2.setTrackbarPos('breakpoint-select', 'Grayscale Trackbar', 1)
+                cv2.setTrackbarPos('breakpoint', 'Grayscale Trackbar', breaks[0])
+                tempc = 0
+
+                # adds empty colors and breakpoints to allow adding colors again
+                while len(colors) < 10:
+                    colors.append([0, 0, 0])
+                    breaks.append(255)
         else:
             print("The filename was invalid")
 
-if keypressed == 27:  # close window if 'escape' key pressed
+# exit / save
+if keypressed == 27:  # ESC
     cv2.destroyAllWindows()
     cv2.waitKey(1)
-elif keypressed == ord('s'):  # save greyscale, colored file, and data txt if 's' key pressed
-    # create filenames
+elif keypressed == ord('s'):  # save
+    # create file names
     file = filename.split('.')
     save_name = input("Enter a filename to save as or leave blank to use default name: ")
     if save_name == "":
@@ -131,15 +185,15 @@ elif keypressed == ord('s'):  # save greyscale, colored file, and data txt if 's
     colored_file = save_name + 'Colored.' + file[1]
     txt_file = save_name + 'Data.txt'
 
-    # if filename already exists, add a number at the end
+    # ensure file names don't exist
     index = 0
-    while os.path.isfile(grayscale_file) == True or os.path.isfile(colored_file) == True or os.path.isfile(txt_file) == True:
+    while os.path.isfile(grayscale_file) or os.path.isfile(colored_file) or os.path.isfile(txt_file):
         grayscale_file = save_name + 'Grayscale' + str(index) + '.' + file[1]
         colored_file = save_name + 'Colored' + str(index) + '.' + file[1]
         txt_file = save_name + 'Data' + str(index) + '.txt'
         index += 1
 
-    #create files
+    # write files
     cv2.imwrite(grayscale_file, grayscale_image)
     cv2.imwrite(colored_file, customized_image)
     with open(txt_file, 'w') as f:
