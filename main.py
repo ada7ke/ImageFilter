@@ -5,7 +5,7 @@ import cv2, eyw, os.path, json
 print("Save your original image in the same folder as this program.")
 filename_valid = False
 while not filename_valid:
-    filename = "picture.jpg"
+    filename = input("Enter the filename for an image: ")
     if os.path.isfile(filename):
         filename_valid = True
     else:
@@ -152,7 +152,7 @@ while keypressed not in (27, ord('s')):
 
     # import data
     if keypressed == ord('i'):
-        data = "pictureData.txt"
+        data = input("Enter the data txt file: ")
         if os.path.isfile(data):
             with open(data, 'r') as f:
                 # loads break and color data
